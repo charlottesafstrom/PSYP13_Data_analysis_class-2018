@@ -1,0 +1,66 @@
+setwd("~/Desktop/R STUDIO")
+graphics.off()
+rm(list = ls())
+
+library(psych)
+library(dplyr)
+library(gsheet)
+library(ggplot2)
+library(car)
+
+
+data_sample_1 = read.csv("https://raw.githubusercontent.com/kekecsz/PSYP13_Data_analysis_class-2018/master/home_sample_1.csv ")
+
+describe(data_sample_1)
+
+cleaned.data <- data_sample_1 #new dataname first
+cleaned.data = cleaned.data[-which(cleaned.data[, "ID"] == "ID_112"),] #EXLCUDE
+cleaned.data = cleaned.data[-which(cleaned.data[, "ID"] == "ID_146"),]# EXCLUDE
+cleaned.data[cleaned.data[, "age"] == "222", "age"] = 22 #CHANGE HER
+
+
+reg.mod1 <-lm(pain ~ sex + age, data = cleaned.data) # after ~ comes the predictors
+reg.mod1
+summary(reg.mod1)
+lm.beta(reg.mod1) #see wich ones are more influental, because you can compare your beta values
+
+confint(reg.mod1)
+
+plot(pain ~ age, data=cleaned.data) #created a plot, for looking at how good it fits
+abline(lm(pain~age, data=cleaned.data)) #draw a line through it
+
+######The new full model
+reg.mod2 <-lm(pain ~ sex + age + STAI_trait + pain_cat + cortisol_serum + cortisol_saliva + mindfulness, data = cleaned.data)
+
+summary(reg.mod2)
+confint(reg.mod2) #confidence intervals
+require(lm.beta) #beta values
+lm.beta(reg.mod2) #can compare these ones
+ 
+
+
+########checking for influential outliers
+plot(reg.mod1, which =4) #Cook's distance, important if a is value = over 1
+plot(reg.mod2, which = 4)
+lev =hat(model.matrix(reg.mod2))
+plot(lev)
+cleaned.data[lev > .15,]
+
+N= nrow(cleaned.data)
+mahad=(N-1)*(lev-1 / N) 
+tail(sort(mahad),5)
+order(mahad,decreasing=T)[c(5,4,3,2,1)]
+
+
+
+############The assumptions
+shapiro.test(residuals(reg.mod2)) #to check if the residuals are normaly distributed 
+residualPlots(reg.mod2) #for linearity for independent and dependent varibels - the relationship
+ncvTest(reg.mod2)#homogenity of variance /homoscediticity
+vif(reg.mod2)#dont want the varibles tot be correlaated. scores lower than 3
+
+
+AIC(reg.mod1) 
+AIC(reg.mod2) #mod 2 better beacuse it's smaller. #can also look at the variance
+
+anova(reg.mod1, reg.mod2) 
